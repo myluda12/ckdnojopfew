@@ -1,3 +1,4 @@
+
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
@@ -74,6 +75,7 @@ int X_remainder;
  float ystep;
  float xstep;
 
+    int g_remain_argc;
  float nextHoriX;
  float nextHoriY;
  //check if wall is hited
@@ -110,6 +112,8 @@ int up;
 int down;
 int left;
 int right;
+int a;
+int d;
 //Rendering 3D MAP
 float correctWallDistance;
 float distanceProjectionPlan;
@@ -155,7 +159,6 @@ char **check;
 ////////////
 int sprite_number;
 int dontenteragain;
-int ic;
 
 typedef struct s_sprite
 {
@@ -179,7 +182,7 @@ float x;
 float y;
 float xoff;
 }               t_sprite;
-t_sprite sprites[1000], sprites_temp;
+t_sprite sprites[3000], sprites_temp;
 
 typedef struct s_spritefinder
 {
@@ -230,20 +233,19 @@ typedef struct s_screenmap
     unsigned int height;
     int width_in_byte;
     unsigned int image_size;
-    int file_size;
-    short int planes;
     unsigned int size_header;
     unsigned int offset_bits;
-    char *img;
+    int file_size;
+    short int planes;
     int fd;
-    int save;
+    char *img;
 
 }               t_screenmap;
 t_screenmap screenmap;
-int t = 0;
 char *g_chorfi;
-
-int f = 0;
+char *mapo;
+char *map_fd;
+int t = 0;
 
 int     design_morba3(int i, unsigned int color, char **line, int j)
 {
@@ -306,6 +308,7 @@ void	sorting(void)
 		j = 0;
 		indd++;
 	}
+    sprites[sprite_count].distance = '\0';
 }
 void ft_directions(int j,int i)
 {
@@ -330,7 +333,7 @@ void ft_morba3(char **line)
     j = 0;
     while(j < inde && line[j][i])
     {
-        if (line[j][i] == '1')
+        if (line[j][i] == '1'  || line[j][i] == ' ')
         {
             color = 0x6f665d;
             design_morba3(i, color, line, j);
@@ -576,7 +579,6 @@ void render_column1(int i, int count)
          g_data[width * j + i] = color_f;// + pc;
          j++;
     }
-;
 
 }
 void render_colomn(int i)
@@ -615,6 +617,10 @@ void render_colomn(int i)
             {
                 g_data[width * j + i] = check_opacity(textu3[(int)yOffset * 50 + (int)xOfsset]);
             }
+         /*   else if(sprite == 1)
+            {
+                g_data[1000 * j + i] = 0;
+            } */
 
             if(swiitch == 0)
                 mlx_pixel_put(mlx_ptr,win_ptr,i,j,0x006400);
@@ -625,7 +631,9 @@ void render_colomn(int i)
          g_data[width * j + i] = color_f;
          j++;
     }
+    
 }
+
 void render_map3D(int i)
 {
     correctWallDistance = distance * cos(rotation - rotationAngle);
@@ -637,6 +645,22 @@ void render_map3D(int i)
         //Modification here 2  
         if(swiitch == 1)
             render_colomn(i);
+}
+void BubbleSort1(int sprite_count)
+{
+    int i, j, temp;
+    for (i = 0; i < (sprite_count - 1); ++i)
+    {
+        for (j = 0; j < sprite_count - 1 - i; ++j )
+        {
+            if (sprites[j].distance > sprites[j + 1].distance)
+            {
+                temp = sprites[j + 1].distance;
+                sprites[j + 1].distance = sprites[j].distance ;
+                sprites[j].distance = temp;
+            }
+        }
+    }
 }
 int ray_Direction()
 {
@@ -760,8 +784,8 @@ int ft_cast_ray(int index)
             sprites[sprite_count].y = nextHoriY;
             sprites[sprite_count].distance =  sqrtf(powf(Y_player - sprites[sprite_count].y,2) + powf(X_player - sprites[sprite_count].x,2));
             sprite_count++;
-
         }
+       // BubbleSort1(sprite_count);
         if (check == 1)
         {
             wallVertHit = 1;
@@ -775,8 +799,10 @@ int ft_cast_ray(int index)
             nextHoriX += xstep;
             nextHoriY += ystep; 
         }
-    }
 
+    }
+    //printf("%d\n",sprite_count);
+    //printf("%d\n",sprite_count);
     // The Distance between vert and horizontal distances and precist the smallest value
 
     HorzHitDistance = (wallHoriHit) ? Distance_between_HorVer(X_player , Y_player, HorizwallHitX,HorizwallHitY) : MAX_INT;
@@ -808,6 +834,13 @@ int mlx_key_press(int key)
         down = 1;
     if (key == 126)
         up = 1;
+    if (key == 0)
+        a = 1;
+    if (key == 2)
+        d = 1;
+    if (key == 53)
+        exit(0);
+    //printf("%d\n",key);
     return 0;
 }
 int key_release(int key)
@@ -820,6 +853,10 @@ int key_release(int key)
         down = 0;
     if (key == 126)
         up = 0;
+    if (key == 0)
+        a = 0;
+    if (key == 2)
+        d = 0;
     return 0;
 }
 
@@ -831,7 +868,7 @@ void render_sprite(int i)
         int count = sprite_count - 1;
         float angle_wanted,angle_sghira,point_x,point_y,point_distance_x,point_distance_y;
         float angle_jdida;
-        sorting();
+        //sorting();
         while (count >= 0)
         {
             angle_sghira = atan2(Y_player - sprites[count].ycentre, X_player - sprites[count].xcentre);
@@ -858,11 +895,11 @@ void render_sprite(int i)
     ft_nizar_calcul();
         //Modification here 2
  
-        if(swiitch == 1)
-        {
-       
-            render_column1(i,count);
-        }
+            if(swiitch == 1)
+            {
+                if (sprites[count].distance < distance)
+                    render_column1(i,count);
+            }  
             count--;
         }
     
@@ -877,9 +914,10 @@ int deal_key(void)
     int i = 0;
     int j = 0;
     int ray_lenght;
+    int sp_c = 0;
     remaind = wall;
    // ft_morba3(line);
-    //mlx_clear_window(mlx_ptr,win_ptr);
+   // mlx_clear_window(mlx_ptr,win_ptr);
     rotation = rotationAngle - M_PI / 8;
     rot = rad(45) / width;
     sprite_count = 0;
@@ -896,16 +934,40 @@ int deal_key(void)
         rotation += rot;
         // if(sprite == 0)
         render_map3D(i);
+        sorting();
+        //printf("|%d|\n",sprite_count);
         if(sprite_indicator == 1 )
         {
-             render_sprite(i);
-          
+            if (sprite_count == 2)
+            {
+            printf("%f sp1 %f sp2 %f sp3\n",sprites[0].distance,sprites[1].distance , sprites[2].distance);
+            printf("%f wall\n",distance);
+            }
+            //  while(sp_c < sprite_count)
+            //  {
+                if (sprites[0].distance < distance)
+                {
+                    //fprintf(stderr, "yes\n");
+                    render_sprite(i);
+                }
+                
+            //     sp_c++;
+            //  }
+           
+            
              sprite_count = 0;
         }
+        
+        
+    
         i++;
 
     }
-    screenshot();
+    if (strcmp(g_chorfi,"--save") == 0)
+        screenshot();
+
+    
+
     //DDA(X_player, Y_player,  X_player  +  150  *  cos(rotationAngle - M_PI / 8) , Y_player +  150 * sin//(rotationAngle - M_PI / 8));
     if(down == 1)
     {
@@ -926,11 +988,38 @@ int deal_key(void)
         Y_remainder = Y_player;
         X_remainder += cos(rotationAngle) * 10;
         Y_remainder += sin(rotationAngle) * 10;
+        //printf("%d\n",X_player);
          p = wall_collision();
         if (p != 1)
         {
             X_player += cos(rotationAngle) * 10;
             Y_player += sin(rotationAngle) * 10;
+        }
+    }
+    if(d == 1)
+    {
+        X_remainder = X_player;
+        Y_remainder = Y_player;
+        X_remainder -= cos(rotationAngle - M_PI / 2) * 10;
+        Y_remainder -= sin(rotationAngle - M_PI / 2) * 10;
+        p = wall_collision();
+        if (p != 1)
+        {
+            X_player -= cos(rotationAngle - M_PI / 2) * 10;
+            Y_player -= sin(rotationAngle - M_PI / 2) * 10;
+        }
+    }
+    if(a == 1)
+    {
+        X_remainder = X_player;
+        Y_remainder = Y_player;
+        X_remainder -= cos(rotationAngle + M_PI / 2) * 10;
+        Y_remainder -= sin(rotationAngle + M_PI / 2) * 10;
+        p = wall_collision();
+        if (p != 1)
+        {
+            X_player -= cos(rotationAngle + M_PI / 2) * 10;
+            Y_player -= sin(rotationAngle + M_PI / 2) * 10;
         }
     }
     if (left == 1)
@@ -952,10 +1041,11 @@ int loop_key()
    /*textu1 = "ayoub.xpm";
     textu2 = "maroc.xpm";
     textu3 = "shanks.xpm"; */
-    if(strcmp(g_chorfi,"--save") != 0)
+
+    if (strcmp(g_chorfi,"--save") != 0)
     {
-    mlx_hook(win_ptr,2,0,mlx_key_press,0);
-    mlx_hook(win_ptr,3,0,key_release,0);
+        mlx_hook(win_ptr,2,0,mlx_key_press,0);
+        mlx_hook(win_ptr,3,0,key_release,0);
     }
     deal_key();
     // modification 3
@@ -1009,59 +1099,46 @@ int ft_valid_map()
     return(0);
 }
 
-int ft_check_zero()
+void ft_check_zero()
 {
-    int i = 0;
-    while(map[y_len][i])
-    {
-        if(map[y_len][i] == '0')
-        {
-            if(map[y_len][0] == '0' || map[y_len][i + 1] == ' ' || map[y_len][i - 1] == ' ' || strchr(" ", map[y_len - 1][i]) || map[y_len][i + 1] == '\0')
-            {
-                return 0;
-            }
-        }
-        else if(map[y_len][i] == '2')
-        {
-            if(map[y_len][i] == '2' && (map[y_len][i + 1] == ' ' || map[y_len][i - 1] == ' ' || map[y_len + 1][i] == ' '|| map[y_len - 1][i] == ' '))
-                return 0;
-        }
-        i++;
-    }
-    return 1;
-}
-void ft_check_zero1()
-{
-    int i = 0;
-    int j = 0;
-    int p = 0;
-    printf("kkkkk\n");
-    while(inde > j && line[j][i])
+    int i;
+    int j;
+    int p;
+
+    i = 0;
+    j = 0;
+    while(line[j][i] && inde > j)
     {
         if(line[j][i] == '0')
         {
-            if(line[j][0] == '0' || line[j][i + 1] == ' ' || line[j][i - 1] == ' ' || strchr(" ", line[j - 1][i]) || line[j][i + 1] == '\0' || line[j + 1][i] == ' ')
+            if(line[j][0] == '0' || line[j][i + 1] == ' ' || line[j][i - 1] == ' ' || line[j - 1][i] == ' ' || line[j][i + 1] == '\0' || line[j + 1][i] == ' ')
             {
-                printf("error map");
-                exit(0);
+                printf("error in map");
+                exit (0);
             }
         }
         else if(line[j][i] == '2')
         {
             if(line[j][i] == '2' && (line[j][i + 1] == ' ' || line[j][i - 1] == ' ' || line[j + 1][i] == ' '|| line[j - 1][i] == ' '))
-                {
-                    printf("error map");
-                    exit(0);
-                }
-        }
-        if (line[j][i] == '\0' && inde > j)
-        {
-            j++;
-            i = 0;
+            {
+                printf("error in map");
+                exit (0);
+            }
         }
         i++;
+        if (line[j][i] == '\0' && inde > j)
+        {
+            i = 0;
+            if (line[j + 1] == NULL)
+                break;
+            else
+                j++;
+            
+        }
+
     }
 }
+
 
 void BubbleSort(int inde)
 {
@@ -1079,75 +1156,6 @@ void BubbleSort(int inde)
         }
     }
 }
-void ft_header(void)
-{
-    screenmap.header = ft_calloc(54,1);
-    screenmap.bit_count = 24;
-    screenmap.width = width;
-    screenmap.height = height;
-    screenmap.width_in_byte = ((screenmap.width * screenmap.bit_count + 31) / 32) * 4;
-    screenmap.image_size = screenmap.width_in_byte * screenmap.height;
-    screenmap.size_header = 40;
-    screenmap.offset_bits = 40 + 14;
-    screenmap.file_size = screenmap.offset_bits + screenmap.image_size;
-    screenmap.planes = 1;
-    ft_memcpy(screenmap.header , "BM" , 2);
-    ft_memcpy(screenmap.header + 2, &screenmap.file_size, 4);
-    ft_memcpy(screenmap.header + 10, &screenmap.offset_bits, 4);
-    ft_memcpy(screenmap.header + 14 , &screenmap.size_header, 4);
-    ft_memcpy(screenmap.header + 18, &screenmap.width, 4);
-    ft_memcpy(screenmap.header + 22 , &screenmap.height, 4);
-    ft_memcpy(screenmap.header + 26 , &screenmap.planes, 2);
-    ft_memcpy(screenmap.header + 28, &screenmap.bit_count, 2);
-    ft_memcpy(screenmap.header + 34 , &screenmap.image_size, 4);
-}
-
-int *get_color(int coloor)
-{
-    int *colors;
-    colors = malloc(3 * sizeof(int));
-    colors[0] = ((coloor >> 16) & 0xFF);
-    colors[1] = ((coloor >> 8) & 0xFF);
-    colors[2] = ((coloor) & 0xFF);
-    return (colors);
-
-}
-void create_image(void)
-{
-    int row;
-    unsigned int col;
-    int *colors;
-
-    screenmap.img = malloc(screenmap.image_size);
-    row = screenmap.height - 1;
-    while(row > 0)
-    {
-        col = 0;
-        while(col < screenmap.width)
-        {
-            colors = get_color(g_data[(screenmap.height - row) * screenmap.width + col]);
-            screenmap.img[row * screenmap.width_in_byte + col * 3 + 2] = colors[0];
-            screenmap.img[row * screenmap.width_in_byte + col * 3 + 1] = colors[1];
-            screenmap.img[row * screenmap.width_in_byte + col * 3 + 0] = colors[2];
-            col++;
-        }
-        row--;
-    }
-}
-void screenshot(void)
-{
-   // printf("chorfi\n");
-    screenmap.fd = open("./screenshot.bmp", O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
-
-    ft_header();
-    create_image();
-    //printf("%s\n",screenmap.header);
-    write(screenmap.fd,screenmap.header,54);
-    write(screenmap.fd,screenmap.img,screenmap.image_size);
-    free(screenmap.header);
-    free(screenmap.img);
-    exit(0);
-}
 int fd_tab2(int fd)
 {
     //line = (char **)malloc(sizeof(char *) * 1000);
@@ -1155,10 +1163,17 @@ int fd_tab2(int fd)
     int c = 0;
     int f = 0;
     
+    /*line[i] = malloc(sizeof (char) * 1000);
+        while(map[y_len][j])
+        {
+            line[i][j] = map[y_len][j];
+            j++;
+        }
+    line[i][j] = '\0';*/
     c = ft_valid_map();
-    f = ft_check_zero();
+    // = ft_check_zero();
   
-        if(c == 1 && f == 1)
+        if(c == 1)
         line[inde] = strdup(map[y_len]);
     return c + f;
      
@@ -1196,8 +1211,8 @@ int ft_check(int fd,int t,int c)
     int k = 0;
     f = 0;
     static int p = 0;
-    i = strcmp(check[0],"R");
-
+    if(!check[0])
+        check[0] = strdup("");
      if (strcmp(check[0],"R") == 0)
      {
          direction.r++;
@@ -1296,7 +1311,7 @@ int ft_check(int fd,int t,int c)
         }
          f = check_valid(check[1]);
          if (f == 1)
-    textu0 = ft_texture(check[1], textu0);
+            textu0 = ft_texture(check[1], textu0);
             if (f == 0)
             {
                 printf("invalidmap\n");
@@ -1366,14 +1381,14 @@ int ft_check(int fd,int t,int c)
                 else
                 {
                     c = fd_tab2(fd);
-                    if (c < 2)
+                    if (c < 1)
                     {
                         printf("invalid map\n");
                         exit (0);
                     }
                 }
                 mapcount[p].linex = ft_strlen(line[inde]);
-                printf("%s\n",line[inde]);
+                //printf("|%s|\n",line[inde]);
                 inde++;
                 p++;
              }
@@ -1402,10 +1417,11 @@ int  fd_tab(int fd)
     y_len = 0;
     check = malloc(sizeof(char *) * 10000);
     map = malloc(sizeof(char *) * 10000);
+    str = malloc(sizeof(char *) * 10000);
     while(get_next_line(fd,&str[lenght]))
     {
         map[y_len] = ft_strdup(str[lenght]);
-        if(strchr("1 0", str[lenght][0]))
+        if(ft_strchr("1 0", str[lenght][0]))
         {
             mapcount[lenght].lenghtx = ft_strlen(str[lenght]);
         }
@@ -1428,7 +1444,7 @@ int  fd_tab(int fd)
             check = ft_split(map[y_len],' ');
            c = ft_check(fd,t,c);
            
-            if (c < 2)
+            if (c < 1)
                 exit (0);
         }
 
@@ -1439,7 +1455,7 @@ int  fd_tab(int fd)
     // c = fd_tab2(fd);
     // c = ft_check(fd,t,c);
    // printf("|%s|\n",line[inde]);
-    if (c < 2)
+    if (c < 1)
     {
         printf("map invalid");
         exit (0);
@@ -1475,6 +1491,74 @@ void ft_switch_space()
         map[y_len] = ft_strjoin(map[y_len],str);
    // printf("|%s|\n",map[y_len]);
 }
+void ft_header(void)
+{
+    screenmap.header = ft_calloc(54,1);
+    screenmap.bit_count = 24;
+    screenmap.width = width;
+    screenmap.height = height;
+    screenmap.width_in_byte = ((screenmap.width * screenmap.bit_count + 31) / 32) * 4;
+    screenmap.image_size = screenmap.width_in_byte * screenmap.height;
+    screenmap.size_header = 40;
+    screenmap.offset_bits = 40 + 14;
+    screenmap.file_size = screenmap.offset_bits + screenmap.image_size;
+    screenmap.planes = 1;
+    ft_memcpy(screenmap.header , "BM" , 2);
+    ft_memcpy(screenmap.header + 2, &screenmap.file_size, 4);
+    ft_memcpy(screenmap.header + 10, &screenmap.offset_bits, 4);
+    ft_memcpy(screenmap.header + 14 , &screenmap.size_header, 4);
+    ft_memcpy(screenmap.header + 18, &screenmap.width, 4);
+    ft_memcpy(screenmap.header + 22 , &screenmap.height, 4);
+    ft_memcpy(screenmap.header + 26 , &screenmap.planes, 2);
+    ft_memcpy(screenmap.header + 28, &screenmap.bit_count, 2);
+    ft_memcpy(screenmap.header + 34 , &screenmap.image_size, 4);
+}
+int *get_color(int coloor)
+{
+    int *colors;
+    colors = malloc(3 * sizeof(int));
+    colors[0] = ((coloor >> 16) & 0xFF);
+    colors[1] = ((coloor >> 8) & 0xFF);
+    colors[2] = ((coloor) & 0xFF);
+    return (colors);
+
+}
+void create_image(void)
+{
+    int row;
+    unsigned int col;
+    int *colors;
+
+    screenmap.img = malloc(screenmap.image_size);
+    row = screenmap.height - 1;
+    while(row > 0)
+    {
+        col = 0;
+        while(col < screenmap.width)
+        {
+            colors = get_color(g_data[(screenmap.height - row) * screenmap.width + col]);
+            screenmap.img[row * screenmap.width_in_byte + col * 3 + 2] = colors[0];
+            screenmap.img[row * screenmap.width_in_byte + col * 3 + 1] = colors[1];
+            screenmap.img[row * screenmap.width_in_byte + col * 3 + 0] = colors[2];
+            col++;
+        }
+        row--;
+    }
+}
+void screenshot(void)
+{
+   // printf("chorfi\n");
+    screenmap.fd = open("./screenshot.bmp", O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+
+    ft_header();
+    create_image();
+    //printf("%s\n",screenmap.header);
+    write(screenmap.fd,screenmap.header,54);
+    write(screenmap.fd,screenmap.img,screenmap.image_size);
+    free(screenmap.header);
+    free(screenmap.img);
+    exit(0);
+}
 void direction_global()
 {
     direction.ea = 0;
@@ -1485,13 +1569,37 @@ void direction_global()
     direction.f = 0;
     direction.c = 0;
 }
-int main(int argc,char **argv)
+
+void ft_check_arg(char **argv,int argc)
 {
-    g_chorfi = argv[1];
+    int i;
+    int len;
+
+
+    len = ft_strlen(argv[1]);
+    len = len - 4;
+    mapo = &argv[1][len];
+    if (argc == 2)
+        g_chorfi = strdup("");
+    else
+        g_chorfi = argv[2];
+    
+    if(strcmp(mapo,".cub") != 0)
+    {
+        printf("error in .cub");
+        exit(0);
+    }
+
+}
+int main(int argc, char **argv)
+{
         dontenteragain = 0;
+    if(argc == 2 || argc == 3)
+        ft_check_arg(argv,argc);
+
 
    int i = 0;
-    int j = 0;
+    g_remain_argc = argc;
     inde = 0;
 
     //printf("ayoub")
@@ -1503,14 +1611,27 @@ int main(int argc,char **argv)
    // memset(g_rays, 0, 1000 * sizeof(int));
     //memset(g_rays_hit, 0, 1000 * sizeof(int));
     mlx_ptr = mlx_init();
-    int fd = open("map.txt", O_RDONLY);
+    int fd = open(argv[1], O_RDONLY);
+    if (fd == -1)
+    {
+        printf("error mapo");
+        exit(0);
+    }
     //fd_tab(fd);
     if (!fd_tab(fd))
             return 0;
-    win_ptr = mlx_new_window(mlx_ptr, width, height,"mlx 42");
+    ft_check_zero();
+    if(strcmp(g_chorfi,"--save") != 0 && argc == 3)
+    {
+        printf("error in parameter");
+        exit (0);
+    }
+    if(strcmp(g_chorfi,"--save") != 0)
+        win_ptr = mlx_new_window(mlx_ptr, width, height,"mlx 42");
     g_image = mlx_new_image(mlx_ptr,width,height);
     g_data = (int *)mlx_get_data_addr(g_image,&g_b,&g_a,&g_c);
     ft_morba3(line);
+  //  printf("%d\n",inde);
      if (N > 1 || N == 0)
     {
         printf("error multi or miss player\n");
